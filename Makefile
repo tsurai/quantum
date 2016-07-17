@@ -42,8 +42,7 @@ clean:
 run: $(ISO)
 	@qemu-system-$(ARCH) -serial stdio -cdrom $(ISO)
 
-iso:
-	$(ISO)
+iso: $(ISO)
 
 $(ISO): $(BIN) $(GRUBCFG)
 	@mkdir -p $(BUILD)iso/boot/grub
@@ -57,7 +56,7 @@ $(BIN): $(OBJS) src/arch/$(ARCH)/link.ld
 	$(OBJDUMP) -S $@ > $@.dsm
 	$(OBJCOPY) --only-keep-debug $@ $@.sym
 
-$(BUILD)libcore.rlib: lib/rust/src/libcore/lib.rs Makefile $(TARGETSPEC)
+$(BUILD)libcore.rlib: lib/rust/src/libcore/lib.rs $(TARGETSPEC)
 	$(RUSTC) $(RUSTFLAGS) lib/rust/src/libcore/lib.rs
 
 $(BUILD)kernel.o: src/main.rs src/logger.rs $(LIBCORE) Makefile $(TARGETSPEC)
