@@ -16,6 +16,10 @@ mbEnd:
 .global start
 .code32
 start:
+    mov $stack_top, %esp
+
+    call clear
+
     # Check that a multiboot2 complient bootloader loaded the kernel
     cmp $0x36d76289, %eax
     jne .noMultiboot
@@ -89,14 +93,22 @@ start:
     jmp error
 
 error:
-    movw $0x400|'E', 0xb8000
-    movw $0x400|'R', 0xb8002
-    movw $0x400|'R', 0xb8004
-    movw $0x400|':', 0xb8006
+    movw $0x400 | 'E', 0xb8000
+    movw $0x400 | 'R', 0xb8002
+    movw $0x400 | 'R', 0xb8004
+    movw $0x400 | ':', 0xb8006
     mov $0x4, %ah
     mov %ax, 0xb8008
     hlt
 
+clear:
+    pusha
+    mov $0x0f | ' ', %ax
+    mov $0xb8000, %edi
+    mov $(25*80), %cx
+    rep stosw
+    popa
+    ret
 
 .section .text
 .extern kmain
