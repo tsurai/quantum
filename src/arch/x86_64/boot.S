@@ -1,3 +1,4 @@
+KERNEL_BASE = 0xFFFFFFFF80000000
 # Declare Multiboot 2 header in a special section
 # Multiboot 2 is needed to load 64bit kernel
 .section .multiboot
@@ -12,11 +13,11 @@ mbStart:
     .long 8
 mbEnd:
 
-.section .text
+.section .inittext, "ax"
 .global start
 .code32
 start:
-    mov $stack_top, %esp
+    mov $(stack_top - KERNEL_BASE), %esp
 
     call clear
 
@@ -56,8 +57,8 @@ start:
     or $(1<<4 | 1<<5), %eax     # set CR4.PAE and CR4.PSE (bit 4 & 5)
     mov %eax, %cr4
 
-    # Load pml4t into cr3
-    mov $pml4t, %eax
+    # Load the address of the root page table into CR3
+    mov $(pml4t - KERNEL_BASE), %eax
     mov %eax, %cr3
 
     # Load EFER MSR and set Long Mode Enable (LME bit 8)
@@ -72,7 +73,7 @@ start:
     mov %eax, %cr0
 
     # Load GDT and switch to 64bit mode
-    lgdt gdtptr
+    lgdt gdtptr - KERNEL_BASE
     ljmp $0x8, $start64
 
 
@@ -110,16 +111,21 @@ clear:
     popa
     ret
 
+.code64
+.global start64
+start64:
+    lgdt gdtptr_high
+    mov $start64_high, %rax
+    jmp *%rax
+
 .section .text
 .extern kmain
-.code64
-.globl start64
-start64:
-    # Clear the interrupt flag until we have a 64bit IDT
-    cli
-
-    # Set stack pointer
-    mov $stack_top, %rsp
+.globl start64_high
+start64_high:
+    # Clear the initial low identity map
+    mov $0, %rax
+    mov %rax, pml4t
+    mov %rax, pdpt
 
     # Set up segment registers
     mov $0x10, %ax
@@ -129,11 +135,45 @@ start64:
     mov %ax, %fs
     mov %ax, %gs
 
+    # Set stack pointer
+    mov $stack_top, %rsp
+
+    # Call the real Rust kernel
     call kmain
 
+    # Loop in case we ever return (which should never happen)
 start64.loop:
     hlt
     jmp start64.loop
+
+# Page tables with identity paging for the first 4MB
+# All identity pages are marked present (1) + writeable (2)
+.section .padata
+pml4t:
+    .quad pdpt - KERNEL_BASE + 3
+    .rept 512 - 2
+        .quad 0
+    .endr
+    .quad pdpt - KERNEL_BASE + 3
+pdpt:
+    .quad pdt - KERNEL_BASE + 3
+    .rept 512 - 3
+        .quad 0
+    .endr
+    .quad pdt - KERNEL_BASE + 3
+    .quad 0
+pdt:
+    # Using 2MB pages via page size extension (PSE 0x80)
+    .quad 0x000000 + 0x80 + 3
+    .quad 0x200000 + 0x80 + 3
+    .rept 512 - 2
+        .quad 0
+    .endr
+
+# setup a temporary stack
+stack_bottom:
+.skip 16384 # 16KiB
+stack_top:
 
 # GDT with 64bit flag set in code and data selectors
 .section .data
@@ -155,31 +195,7 @@ gdt:
     .byte 0
 gdtptr:
     .word gdtptr - gdt - 1
+    .long gdt - KERNEL_BASE
+gdtptr_high:
+    .word gdtptr - gdt - 1
     .quad gdt
-
-# Page tables with identity paging for the first 4MB
-# All identity pages are marked present (1) + writeable (2)
-.section .padata
-pml4t:
-    .quad pdpt + 3
-    .rept 512 - 1
-        .quad 0
-    .endr
-pdpt:
-    .quad pdt + 3
-    .rept 512 - 1
-        .quad 0
-    .endr
-pdt:
-    # Using 2MB pages via page size extension (PSE 0x80)
-    .quad 0x000000 + 0x80 + 3
-    .quad 0x200000 + 0x80 + 3
-    .rept 512 - 2
-        .quad 0
-    .endr
-
-# setup a temporary stack
-.section .bootstrap_stack, "aw", @nobits
-stack_bottom:
-.skip 16384 # 16KiB
-stack_top:

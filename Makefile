@@ -26,6 +26,7 @@ RUSTFLAGS := -g -O --target=$(TARGETSPEC) --out-dir $(BUILD) -Z no-landing-pads
 
 # objects
 LIBCORE := $(BUILD)libcore.rlib
+SOURCES := $(wildcard src/*.rs src/**/*.rs)
 OBJS := boot.o kernel.o libcore.rlib
 OBJS := $(OBJS:%=$(BUILD)%)
 GRUBCFG := src/arch/$(ARCH)/grub.cfg
@@ -59,7 +60,7 @@ $(BIN): $(OBJS) src/arch/$(ARCH)/link.ld
 $(BUILD)libcore.rlib: lib/rust/src/libcore/lib.rs $(TARGETSPEC)
 	$(RUSTC) $(RUSTFLAGS) lib/rust/src/libcore/lib.rs
 
-$(BUILD)kernel.o: src/main.rs src/logger.rs $(LIBCORE) Makefile $(TARGETSPEC)
+$(BUILD)kernel.o: src/main.rs $(SOURCES) $(LIBCORE) Makefile $(TARGETSPEC)
 	@mkdir -p $(dir $@)
 	$(RUSTC) $(RUSTFLAGS) --emit=obj,dep-info $< --extern core=$(LIBCORE)
 

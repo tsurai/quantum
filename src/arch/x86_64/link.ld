@@ -1,4 +1,7 @@
 ENTRY(start)
+OUTPUT_FORMAT(elf64-x86-64)
+
+KERNEL_BASE = 0xFFFFFFFF80000000;
 
 SECTIONS
 {
@@ -6,33 +9,38 @@ SECTIONS
        loaded at by the bootloader. */
     . = 1M;
 
-    /* First put the multiboot header, as it is required to be put very early
-       early in the image or the bootloader won't recognize the file format.
-       Next we'll put the .text section. */
-    .text BLOCK(4K) : ALIGN(4K)
+    . += SIZEOF_HEADERS;
+
+    .init : AT(ADDR(.init))
     {
         KEEP(*(.multiboot))
-        *(.text)
+        *(.inittext)
+    }
+
+    /* We want to move the kernel to 0xFFFFFFFFF8000000 */
+    . += KERNEL_BASE;
+
+    .text ALIGN(4K) : AT(ADDR(.text) - KERNEL_BASE)
+    {
+       *(.text)
     }
 
     /* Read-only data. */
-    .rodata BLOCK(4K) : ALIGN(4K)
+    .rodata ALIGN(4K) : AT(ADDR(.rodata) - KERNEL_BASE)
     {
         *(.rodata)
     }
 
     /* Read-write data (initialized) */
-    .data BLOCK(4K) : ALIGN(4K)
+    .data ALIGN(4K) : AT(ADDR(.data) - KERNEL_BASE)
     {
         *(.padata)
         *(.data)
     }
 
     /* Read-write data (uninitialized) and stack */
-    .bss BLOCK(4K) : ALIGN(4K)
+    .bss : AT(ADDR(.bss) - KERNEL_BASE)
     {
-        *(COMMON)
         *(.bss)
-        *(.bootstrap_stack)
     }
 }

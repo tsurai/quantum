@@ -17,6 +17,7 @@ pub mod mem;
 pub fn kmain()
 {
     logger::init(io::serial(0x3f8));
+    info!("Welcome to quantum");
 
     loop {}
 }
