@@ -10,29 +10,29 @@ mod arch;
 #[macro_use]
 mod logger;
 
+pub mod mem;
+
 #[lang="start"]
 #[no_mangle]
 pub fn kmain()
 {
+    logger::init(io::serial(0x3f8));
 
-	logger::init(io::serial(0x3f8));
-	debug!("test {}", 123);
-
-	loop {}
+    loop {}
 }
 
 #[lang="panic_fmt"]
 #[no_mangle]
 pub extern "C" fn rust_begin_unwind(msg: ::core::fmt::Arguments, file: &str, line: u32) -> !
 {
-	// fallback on serial if no logger is set
-	if !logger::is_init() {
-		logger::init(io::serial(0x3f8));
-	}
+    // fallback on serial if no logger is set
+    if !logger::is_init() {
+        logger::init(io::serial(0x3f8));
+    }
 
-	logger::_print(format_args!("[PANIC] '{}:{}': {}\n", file, line, msg));
+    logger::_print(format_args!("[PANIC] '{}:{}': {}\n", file, line, msg));
 
-	loop {}
+    loop {}
 }
 
 #[lang="eh_personality"]
@@ -43,5 +43,5 @@ pub fn eh_personality() {}
 #[no_mangle]
 pub extern fn __Unwind_Resume() -> !
 {
-	loop {}
+    loop {}
 }
