@@ -2,7 +2,7 @@
 #![no_std]
 #![crate_name="kernel"]
 
-use arch::io;
+use arch::io::serial;
 
 #[cfg(target_arch="x86_64")] #[path="arch/x86_64/mod.rs"]
 mod arch;
@@ -16,7 +16,7 @@ pub mod mem;
 #[no_mangle]
 pub fn kmain()
 {
-    logger::init(io::serial(0x3f8));
+    logger::init(serial::init(0x3f8));
     info!("Welcome to quantum");
 
     loop {}
@@ -28,7 +28,7 @@ pub extern "C" fn rust_begin_unwind(msg: ::core::fmt::Arguments, file: &str, lin
 {
     // fallback on serial if no logger is set
     if !logger::is_init() {
-        logger::init(io::serial(0x3f8));
+        logger::init(serial::init(0x3f8));
     }
 
     logger::_print(format_args!("[PANIC] '{}:{}': {}\n", file, line, msg));

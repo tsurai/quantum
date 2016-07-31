@@ -26,7 +26,7 @@ RUSTFLAGS := -g -O --target=$(TARGETSPEC) --out-dir $(BUILD) -Z no-landing-pads
 
 # objects
 LIBCORE := $(BUILD)libcore.rlib
-SOURCES := $(wildcard src/*.rs src/**/*.rs)
+SOURCES := $(shell find src -type f -name '*.rs')
 OBJS := boot.o kernel.o libcore.rlib
 OBJS := $(OBJS:%=$(BUILD)%)
 GRUBCFG := src/arch/$(ARCH)/grub.cfg

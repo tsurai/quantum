@@ -39,10 +39,10 @@ pub fn _print(fmt: fmt::Arguments)
 }
 
 pub struct Logger {
-    inner: Option<io::Serial>
+    inner: Option<io::serial::Serial>
 }
 
-pub fn init(inner: io::Serial) {
+pub fn init(inner: io::serial::Serial) {
     unsafe {
         LOGGER.inner = Some(inner);
     }
@@ -87,60 +87,45 @@ macro_rules! _log {
 
 #[macro_export]
 macro_rules! crit {
-    ($fmt:expr) => (
-        _log!($crate::logger::Level::FATAL, $fmt)
-    );
-    ($fmt:expr, $($arg:tt)*) => (
-        _log!($crate::logger::Level::FATAL, $fmt, $($arg)*)
+    ($($arg:tt)*) => (
+        _log!($crate::logger::Level::FATAL, $($arg)*)
     );
 }
 
 #[macro_export]
 macro_rules! err {
-    ($fmt:expr) => (
-        _log!($crate::logger::Level::ERROR, $fmt)
-    );
-    ($fmt:expr, $($arg:tt)*) => (
-        _log!($crate::logger::Level::ERROR, $fmt, $($arg)*)
+    ($($arg:tt)*) => (
+        _log!($crate::logger::Level::ERROR, $($arg)*)
     );
 }
 
 #[macro_export]
 macro_rules! warn {
-    ($fmt:expr) => (
-        _log!($crate::logger::Level::WARNING, $fmt)
-    );
-    ($fmt:expr, $($arg:tt)*) => (
-        _log!($crate::logger::Level::WARNING, $fmt, $($arg)*)
+    ($($arg:tt)*) => (
+        _log!($crate::logger::Level::WARNING, $($arg)*)
     );
 }
 
 #[macro_export]
 macro_rules! info {
-    ($fmt:expr) => (
-        _log!($crate::logger::Level::INFO, $fmt)
-    );
-    ($fmt:expr, $($arg:tt)*) => (
-        _log!($crate::logger::Level::INFO, $fmt, $($arg)*)
+    ($($arg:tt)*) => (
+        _log!($crate::logger::Level::INFO, $($arg)*)
     );
 }
 
 #[macro_export]
 macro_rules! debug {
-    ($fmt:expr) => (
-        _log!($crate::logger::Level::DEBUG, $fmt)
-    );
-    ($fmt:expr, $($arg:tt)*) => (
-        _log!($crate::logger::Level::DEBUG, $fmt, $($arg)*)
-    );
+    ($($arg:tt)*) => ({
+        _log!($crate::logger::Level::DEBUG, $($arg)*)
+    });
 }
 
 #[macro_export]
 macro_rules! trace {
-    ($fmt:expr) => (
-        _log!($crate::logger::Level::TRACE, $fmt)
-    );
-    ($fmt:expr, $($arg:tt)*) => (
-        _log!($crate::logger::Level::TRACE, $fmt, $($arg)*)
-    );
+   ($fmt:expr, $($arg:tt)*) => ({
+       _log!($crate::logger::Level::TRACE, concat!(file!(), ":", line!(), ": ", $fmt), $($arg)*)
+   });
+   ($($arg:tt)*) => ({
+       _log!($crate::logger::Level::TRACE, concat!(file!(), ":", line!(), ": {}"), $($arg)*)
+   });
 }

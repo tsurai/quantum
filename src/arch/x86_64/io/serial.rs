@@ -5,7 +5,7 @@ pub struct Serial {
     port: u16
 }
 
-pub fn serial(port: u16) -> Serial {
+pub fn init(port: u16) -> Serial {
     Serial {
         port: port
     }
