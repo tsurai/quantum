@@ -52,7 +52,7 @@ start:
     or $(1<<9 | 1<<10), %eax    # set CR4.OSFXSR and CR4.OSXMMEXCPT (bit 9 & 10)
     mov %eax, %cr4
 
-    # Enable paging before switching to long mode
+    # Enable page address extension and page size extension for 64bit adresses and 2 MiB pages
     mov %cr4, %eax
     or $(1<<4 | 1<<5), %eax     # set CR4.PAE and CR4.PSE (bit 4 & 5)
     mov %eax, %cr4
@@ -67,11 +67,12 @@ start:
     or $(1<<8), %eax
     wrmsr
 
-    # Enable paging and wrote protect to enter long mode submode IA32e
+    # Enable paging and write protect CR0.PG and CR0.WP (bit 31 & 16)
     mov %cr0, %eax
-    or $(1<<31), %eax
+    or $(1<<31 | 1<<16), %eax
     mov %eax, %cr0
 
+    # We are now in IA32e submode
     # Load GDT and switch to 64bit mode
     lgdt gdtptr - KERNEL_BASE
     ljmp $0x8, $start64
@@ -142,9 +143,9 @@ start64_high:
     call kmain
 
     # Loop in case we ever return (which should never happen)
-start64.loop:
+start64_high.loop:
     hlt
-    jmp start64.loop
+    jmp start64_high.loop
 
 # Page tables with identity paging for the first 4MB
 # All identity pages are marked present (1) + writeable (2)
